@@ -1,0 +1,167 @@
+const express = require('express')
+const {createServer} = require("http")
+const {Server} = require("socket.io")
+const bcrypt = require('bcrypt')
+const dotenv = require('dotenv')
+dotenv.config()
+const collection = require("./config")
+const crypto = require('crypto')
+const nodeMailer = require('nodemailer')
+/*
+let message = "hello world"
+const algorithm = 'aes-256-cbc'
+
+const key = process.env.CRYPKEY
+const base64data = process.env.CRYPIV//Buffer.from(iv, 'binary').toString('base64')
+const iv = Buffer.from(process.env.CRYPIV, 'base64')
+
+
+const cipher = crypto.createCipheriv(algorithm, key, iv)
+let encryptedData = cipher.update(message, "utf-8", "hex")
+encryptedData += cipher.final("hex")
+
+
+const decipher = crypto.createDecipheriv(algorithm,key,Buffer.from(base64data, 'base64'))
+let decryptedData = decipher.update(encryptedData, "hex", "utf-8")
+decryptedData += decipher.final("utf8")
+
+console.log(message, encryptedData, decryptedData)
+*/
+//Random String
+//console.log(Buffer.from(crypto.randomBytes(8), 'binary').toString('base64').slice(0,11))
+
+
+
+
+
+
+const app = express()
+app.use(express.json())
+app.use(express.urlencoded({extended: false}))
+
+app.set('view engine','ejs')
+app.use(express.static("public"))
+
+
+app.get("/home",(req,res)=>{
+    res.render("home")
+})
+app.get("/",(req,res)=>{
+    res.render("login")
+})
+app.get("/signup",(req,res)=>{
+    res.render("signup")
+})
+app.post("/signup",async (req,res)=>{
+    const data = {
+        name: req.body.username,
+        password: req.body.password
+    }
+    const existingUser = await collection.findOne({name: data.name})
+    if(existingUser){
+        res.send({data:"user already exists. Please choose a different name."})
+    }
+    else{
+        const saltRounds = 37
+        const hashedPassword = await bcrypt.hash(data.password, saltRounds)
+        data.password = hashedPassword
+
+        const userdata = await collection.insertMany(data)
+        console.log(userdata)
+    }
+    
+})
+
+app.post("/login",async (req,res)=>{
+    try{
+        const check = await collection.findOne({name: req.body.username})
+        if(!check){
+            res.send({data:"user name was not found"})
+        }
+        const isPasswordMath = await bcrypt.compare(req.body.password, check.password)
+        if(isPasswordMath){
+            res.render("home")
+        }else{
+            res.send({data:"wrong password"})
+        }
+    }catch{
+        res.send({data:"wrong detail"})
+    }
+})
+
+
+const httpServer = createServer(app)
+const io = new Server(httpServer)
+
+io.on('connect',(socket)=>{
+    console.log("user connected ", socket.id)
+    socket.emit("promptUser")
+
+    socket.on("change",()=>{
+        console.log("message received")
+        io.emit("update",{data:Math.random()*360})
+    })
+    socket.on("login",async (data)=>{
+        console.log(data.username,data.password)
+        const existingUser = await collection.findOne({username: data.username})
+        console.log(existingUser)
+        if(existingUser){
+            //socket.emit("serverMessage",{body:"User already exists",color:"#faa"})
+            bcrypt.compare(data.password, existingUser.hash,async (err,isPasswordMatch)=>{
+                if(isPasswordMatch){
+                    socket.emit("serverMessage",{body:"Login credentials accepted",color:"#afa"})
+                }
+                else{
+                    socket.emit("serverMessage",{body:"Login credentials rejected",color:"#faa"})
+                }
+            })
+            /*await bcrypt.hash(data.password,existingUser.salt,async (err,hash)=>{
+                console.log(hash, existingUser.password)
+                if(existingUser.password == hash){
+                    socket.emit("serverMessage",{body:"Login credentials accepted",color:"#afa"})
+                }
+                else{
+                    socket.emit("serverMessage",{body:"Incorrect password",color:"#faa"})
+                }
+            })*/
+        }
+        else{
+            socket.emit("serverMessage",{body:"User not found",color:"#faa"})
+            //const salt = Buffer.from(crypto.randomBytes(8), 'binary').toString('base64').slice(0,11)
+            //console.log("no such user")
+
+            /*
+            //Register New User
+            bcrypt.genSalt(10,async (err,salt)=>{
+                if(err) {
+                    console.log("error hashing password")
+                    return false
+                }
+                bcrypt.hash(data.password,salt,async (err,hash)=>{
+                    let newuser = {}
+                    newuser.name = data.username
+                    newuser.password = await bcrypt.hash(data.password,salt)
+                    //newuser.salt = salt
+                    await collection.insertMany(newuser)
+                    socket.emit("serverMessage",{body:"User created",color:"#ffa"})
+                })
+            })*/
+
+            /*const saltRounds = 37
+            const hashedPassword = await bcrypt.hash(data.password, saltRounds)
+            data.password = hashedPassword
+
+            const userdata = await collection.insertMany(data)
+            console.log(userdata)*/
+        }
+    })
+
+    socket.on('disconnect', function() {
+        console.log(socket.id+" disconnected")
+    })
+})
+
+httpServer.listen(5000)
+
+
+
