@@ -59,11 +59,11 @@ io.on('connect',(socket)=>{
         console.log(data.username,data.password,data.invite)
         const existingUser = await collection.findOne({name: data.username})
         console.log(existingUser)
-        if(existingUser){
-            socket.emit("serverMessage",{body:"Username already in use",color:"#faa"})
-        }
-        else{
-            if(data.invite == process.env.INVITE2){
+        if(data.invite == process.env.INVITE2){
+            if(existingUser){
+                socket.emit("serverMessage",{body:"Username already in use",color:"#faa"})
+            }
+            else{
                 //Register New User
                 bcrypt.genSalt(10,async (err,salt)=>{
                     if(err) {
@@ -80,9 +80,9 @@ io.on('connect',(socket)=>{
                     })
                 })
             }
-            else{
-                socket.emit("serverMessage",{body:"Invite code is invalid",color:"#faa"})
-            }
+        }
+        else{
+            socket.emit("serverMessage",{body:"Invite code is invalid",color:"#faa"})
         }
     })
     socket.on('disconnect', function() {

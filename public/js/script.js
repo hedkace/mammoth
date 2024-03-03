@@ -59,11 +59,6 @@ let loginPage = ()=>{
     let button = document.createElement("div")
     button.innerHTML = "Login"
     button.classList.add("button")
-    button.onclick = (e)=>{
-        const data = {username:document.querySelector("#username").value,password:document.querySelector("#password").value}
-        console.log(data)
-        socket.emit("login",data)
-    }
     main.appendChild(button)
     let otherOption1 = document.createElement("div")
     let otherOption2 = document.createElement("div")
@@ -86,7 +81,19 @@ let loginPage = ()=>{
     let serverMessage = document.createElement("div")
     serverMessage.id = "serverMessage"
     main.appendChild(serverMessage)
-
+    button.onclick = (e)=>{
+        const data = {username:document.querySelector("#username").value,password:document.querySelector("#password").value}
+        console.log(data)
+        if(document.querySelector("#username").value.length == 0) {
+            document.querySelector("#serverMessage").innerHTML = "Enter your username"
+            document.querySelector("#serverMessage").style.color = "#faa"
+        }
+        else if(document.querySelector("#password").value.length == 0) {
+            document.querySelector("#serverMessage").innerHTML = "Enter your password"
+            document.querySelector("#serverMessage").style.color = "#faa"
+        }
+        else socket.emit("login",data)
+    }
     
 }
 let signupPage = ()=>{
