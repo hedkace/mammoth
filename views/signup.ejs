@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="branding">Mammoth</div>
+    <div class="form-container">
+        <h2>Sign Up</h2>
+        <form action="/signup" method="post">
+            <div class="form-group">
+                <label for="name">Name: </label>
+                <input type="text" id="name" placeholder="Enter your name" required autocopmlete="off">
+            </div>
+            <div class="form-group">
+                <label for="password">Password: </label>
+                <input type="password" id="password" placeholder="password" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm">Confirm Password: </label>
+                <input type="password" id="confirm" placeholder="retype password" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email: </label>
+                <input type="text" id="email" placeholder="you@example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">phone: </label>
+                <input type="tel" id="phone" placeholder="(555) 555-5555" required>
+            </div>
+            <div class="form-group">
+                <label for="invite">invite code: </label>
+                <input type="text" id="invite" placeholder="invite code" required>
+            </div>
+            <button type="submit" class="submit-btn">Sign Up</button>
+        </form>
+        <p>Already have an account? <a href="/">Login</a></p>
+        
+        <div class="authMessage"></div>
+    </div>
+    <div class="backgroundVideo">
+        <video playsinline autoplay muted loop poster="cake.jpg">
+            <source src="videos/pexels_videos_2324166 (2160p).mp4" type="video/webm">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    <script>
+        const phoneField = document.querySelector("#phone")
+        phoneField.onkeyup = (e)=>phoneNumberFormatter(e)
+
+        function phoneNumberFormatter(e){
+            if(e.key == "Backspace"){
+                console.log(phoneField.value.length)
+                if(phoneField.value.length==4){
+                    phoneField.value=phoneField.value.slice(0,3)
+                }
+            }
+            
+            const formattedInputValue = formatPhoneNumber(phoneField.value)
+            phoneField.value = formattedInputValue
+        }
+
+        function formatPhoneNumber(value){
+            const match = value
+                .replace(/\D+/g, '').replace(/^1/, '')
+                .match(/([^\d]*\d[^\d]*){1,10}$/)[0]
+            const part1 = match.length > 2 ? `(${match.substring(0,3)})` : match
+            const part2 = match.length > 3 ? ` ${match.substring(3, 6)}` : ''
+            const part3 = match.length > 6 ? `-${match.substring(6, 10)}` : ''    
+            return `${part1}${part2}${part3}`
+        }
+    </script>
+</body>
+</html>
