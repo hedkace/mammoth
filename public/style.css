@@ -16,6 +16,7 @@ body{
     align-items: center;
     justify-items: center;
     min-height: 100vh;
+    padding: 0;
 }
 .form-container h2{
     color: #626f80;
@@ -125,4 +126,25 @@ video {
     height: 100%;
     width: 100%;
   }
-  
+  .userDrop{
+    transition: .25s;
+  }
+  .userIcon{
+    border: 1px solid #090e14;
+    background: #090e14;
+    transition: .25s;
+    grid-column: 2/3;
+    grid-row: 1/2;
+  }
+  .userIcon:hover{
+    background: #22201e;
+    border: 1px solid #6b5241;
+    color: #847568;
+  }
+  .userIcon:hover .userDrop{
+    height: 50px;
+  }
+  .mailIcon{
+    grid-row: 1/2;
+    grid-column: 1/2;
+  }

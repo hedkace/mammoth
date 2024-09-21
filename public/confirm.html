@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mammoth</title>
+</head>
+<body>
+    <div class="topBar">
+        <div class="branding">
+            <img id="mark" src="images\mammoth-mark-blue.svg">
+            <div class="logo">MAMMOTH</div>
+        </div>
+        <div class="topMiddle"></div>
+        <div class="topRight"></div>
+    </div>
+    <div class="pageWrapper">
+        <div class="pageTitle">Confirmation</div>
+        <main>
+            <p class="confirmationMessage">your email address has been confirmed</p>
+        </main>
+    </div>
+</body>
+<foot>
+    <style>
+        @font-face {
+            font-family: "Poppins";
+            src: "css.Poppins-Bold.ttf";
+        }
+        *{
+            margin: 0;
+            padding:0;
+        }
+        body{
+            margin: 0;
+            background: #021020;
+            min-height: 100vh;
+            font-family: "Poppins";
+            text-align: center;
+        }
+        .topBar{
+            display: grid;
+            grid-template-rows: 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        .branding{
+            display: grid;
+            grid-template-rows: 1fr;
+            grid-template-columns: 50px 1fr;
+            align-items: center;
+            height: 40px;
+            padding: 20px;
+            color: #7d8ea5;
+        }
+        #mark{
+            width: 30px;
+            padding: 10px;
+        }
+        .logo{
+            display: inline-grid;
+            font-weight: 700;
+            color: #7d8ea5;
+            font-size: 1.3rem;
+            text-align: left;
+        }
+        .pageTitle{
+            font-weight: 600;
+            font-size: 1.4rem;
+            text-align: center;
+            margin: 30px;
+            color: #999;
+        }
+        .pageWrapper{
+            display: grid;
+            grid-template-rows: 1fr;
+            grid-template-columns: 1fr;
+            justify-content: center;
+            align-items: center;
+        }
+        main{
+            border: 1px solid #999;
+            padding:  40px;
+            min-height:"80vh";
+            width: 600px;
+            margin: 20px auto;
+            color: #999;
+        }
+    </style>
+</foot>
+</html>

@@ -11,6 +11,7 @@ const nodeMailer = require('nodemailer')
 const { collection, tokens, clicks } = require('./config')
 //const fs = require('fs');
 //const path = require('path');
+const cors = require('cors')
 
 
 const app = express()
@@ -19,6 +20,12 @@ app.use(express.urlencoded({extended: false}))
 
 app.set('view engine','ejs')
 app.use(express.static("public"))
+
+const corsOptions = {
+    credentials: true,
+    origin: ['http://localhost:5000', 'http://192.168.1.110:5000'] // Whitelist the domains you want to allow
+};
+app.use(cors(corsOptions))
 
 const httpServer = createServer(app)
 
@@ -30,14 +37,13 @@ const numbers = "0123456789"
 const otherSymbols = "~!@#$%^&*()_+{}|:<>?,.;'[]-="
 const allSymbols = uppercaseLetters + lowercaseLetters + numbers + otherSymbols
 //let sessions = {}
-const sessionTimeout = /*120000*/ 30000
+//const sessionTimeout = /*120000*/ 30000 //2 minutes or half a minute
+const sessionTimeout = 600000 // 10 minutes
 
 
 
 io.on('connect',(socket)=>{
     console.log("user connected ", socket.id)
-    
-    socket.emit("promptUser")
 
     socket.on("change",()=>{
         console.log("message received")
@@ -89,7 +95,7 @@ io.on('connect',(socket)=>{
                                     count: 0,
                                     lastTime: updateSession.lastTime
                                 })
-                                newClickCount.save()
+                                await clicks.insertMany(newClickCount)
                             }
                         }
                         else{
@@ -124,13 +130,14 @@ io.on('connect',(socket)=>{
                         for(let nn = 0; nn<48; nn++){
                             newToken += allSymbols[Math.floor(Math.random()*allSymbols.length)]
                         }
-                        const newSession = tokens.create({
+                        const newSession = {
                             name: data.username,
                             token: newToken,
                             lastTime: Date.now()
 
-                        })
-                        newSession.save()
+                        }
+                        //newSession.save()
+                        tokens.insertMany(newSession)
                         resData.token = newToken
                         /*newSession.name = data.username
                         resData.token = newToken
@@ -222,14 +229,20 @@ io.on('connect',(socket)=>{
                     updateSession.lastTime = Date.now()
                     updateSession.save()
                     const updateClickCount = await clicks.findOne({name: data.username})
+                    const allClickCounts = await clicks.where("count").gt(0)
                     if(updateClickCount){
                         //update entry
                         updateClickCount.count ++
                         updateClickCount.save()
                         updateClickCount.lastTime = updateSession.lastTime
-                        socket.emit("updateClicks",{count: updateClickCount.count, lastOnline: updateSession.lastTime, lastTime: updateClickCount.lastTime})
+                        for(clickCount of allClickCounts){
+                            if(clickCount.name == data.username) clickCount.count = updateClickCount.count
+                            console.log(clickCount)
+                        }
+                        socket.emit("updateClicks",{count: updateClickCount.count, lastOnline: updateSession.lastTime, lastTime: updateClickCount.lastTime, allClicks: allClickCounts})
                     }
                     else{
+                        const allClickCounts = await clicks.where("count").gt(0)
                         //create new entry
                         const newClickCount = {
                             name: data.username,
@@ -238,7 +251,8 @@ io.on('connect',(socket)=>{
                         }
                         //newClickCount.save()
                         await clicks.insertMany(newClickCount)
-                        socket.emit("updateClicks",{count: newClickCount.count, lastOnline: updateSession.lastTime, lastTime: newClickCount.lastTime})
+                        allClickCounts.push(newClickCount)
+                        socket.emit("updateClicks",{count: newClickCount.count, lastOnline: updateSession.lastTime, lastTime: newClickCount.lastTime, allClicks: allClickCounts})
                     }
                 }
             }
@@ -250,7 +264,183 @@ io.on('connect',(socket)=>{
             socket.emit("promptUser")
         }
     })
+
+    socket.on('clikt2Deth', async (data)=>{
+        console.log(data)
+        let resData = {}
+        resData.name = data.name
+        resData.token = data.token
+        resData.count = 0
+        const updateSession = await tokens.findOne({name: data.name})
+        if(updateSession){
+            resData.lastOnline = updateSession.lastTime
+            if(Date.parse(updateSession.lastTime) + sessionTimeout < Date.now()){
+                console.log("session timed out")
+                socket.emit("promptUser")
+            }
+            else{
+                console.log("session live")
+                updateSession.lastTime = Date.now()
+                updateSession.save()
+                resData.lastOnline = updateSession.lastTime
+                const clickCount = await clicks.findOne({name: data.name})
+                const allClickCounts = await clicks.where("count").gt(0)
+                resData.allClicks = allClickCounts
+                if(clickCount){
+                    console.log("click count found")
+                    resData.count = clickCount.count
+                    resData.lastTime = clickCount.lastTime
+                }
+                else{
+                    //create new entry
+                    console.log("click count not found")
+                    resData.count = 0
+                    resData.lastTime = null
+                    const newClickCount = clicks.create({
+                        name: data.username,
+                        count: 0,
+                        lastTime: updateSession.lastTime
+                    })
+                    newClickCount.save()
+                }
+            }
+            socket.emit("clikt2Deth", resData)
+        }
+        else {
+            socket.emit("promptUser")
+        }
+    })
+
+
+    socket.on('games', async (data)=>{
+        console.log(data)
+        let resData = {}
+        resData.name = data.name
+        resData.token = data.token
+        const updateSession = await tokens.findOne({name: data.name})
+        if(updateSession){
+            resData.lastOnline = updateSession.lastTime
+            if(Date.parse(updateSession.lastTime) + sessionTimeout < Date.now()){
+                console.log("session timed out")
+                socket.emit("promptUser")
+            }
+            else{
+                console.log("session live")
+                updateSession.lastTime = Date.now()
+                updateSession.save()
+                resData.lastOnline = updateSession.lastTime
+                resData.openGames = []
+                socket.emit("games", resData)
+            }
+        }
+        else {
+            socket.emit("promptUser")
+        }
+        console.log("games received")
+    })
+
+
+    socket.on('createRPS', async (data)=>{
+        console.log(data)
+        let resData = {}
+        resData.name = data.name
+        resData.token = data.token
+        const updateSession = await tokens.findOne({name: data.name})
+        if(updateSession){
+            resData.lastOnline = updateSession.lastTime
+            if(Date.parse(updateSession.lastTime) + sessionTimeout < Date.now()){
+                console.log("session timed out")
+                socket.emit("promptUser")
+            }
+            else{
+                console.log("session live")
+                updateSession.lastTime = Date.now()
+                updateSession.save()
+                resData.lastOnline = updateSession.lastTime
+                resData.maxSeats = 2
+                resData.gameName = "Sudden Def"
+                resData.gameCode = "AAAA"
+                resData.gameType = "RPS"
+                resData.gameCreator = data.name
+                resData.gameCreated = updateSession.lastTime
+                resData.gamePassword = null
+                console.table(resData)
+                socket.emit("gameLobby", resData)
+            }
+        }
+        else {
+            socket.emit("promptUser")
+        }
+        console.log("create RPS received")
+    })
+
+
+
+
+    socket.on('checkToken', async (data)=>{
+        const updateSession = await tokens.findOne({name: data.name})
+        console.table(updateSession)
+        if(updateSession){
+            if(updateSession.token == data.token){
+                if(Date.parse(updateSession.lastTime) + sessionTimeout < Date.now()){
+                    console.log("session expired")
+                    socket.emit("promptUser")
+                }
+                else{
+                    console.log("session live")
+                    updateSession.lastTime = Date.now()
+                    updateSession.save()
+                    //socket.emit("splash")
+                    let resData = {
+                        name: data.name,
+                        token: data.token,
+                        lastTime: updateSession.lastTime
+                    }
+                    socket.emit("launch",resData)
+                }
+            }
+            else{
+                console.log("invalid session")
+                socket.emit("promptUser")
+            }
+        }
+        else{
+            console.log("user session not found")
+            socket.emit("promptUser")
+        }
+        console.log("check token:")
+        console.table(data)
+    })
+
+
+
 })
+
+
+
+let secretMessage = "hamburger"
+const {publicKey, privateKey} = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+
+})
+
+console.log(publicKey, privateKey)
+
+const encryptMe = crypto.publicEncrypt({
+    key: publicKey,
+    padding: crypto.constants.RSA_OKSC1_DAEP_PADDING,
+    oaepHash: "sha256"
+}, Buffer.from(secretMessage))
+
+console.log(encryptMe.toString("base64"))
+
+const decryptMe = crypto.privateDecrypt({
+    key: privateKey,
+    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+    oaepHash: "sha256"
+}, encryptMe)
+
+console.log(decryptMe.toString())
 
 httpServer.listen(5000)
 
